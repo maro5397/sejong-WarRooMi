@@ -1,7 +1,9 @@
 from django.urls import path, include
 from . import views
 
+
 urlpatterns = [
-    path('keyboard/', views.keyboard),
-    path('message/', views.answer),
+    path('create/', views.create),
+    path('delete/', views.delete),
+    path('retrieve/', views.retrieve),
 ]
