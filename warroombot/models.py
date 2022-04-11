@@ -9,7 +9,7 @@ class Booking(models.Model):
     nos = models.IntegerField()
     name = models.TextField()
     ct = models.TextField()
-    roomid = models.CharField(max_length=4)
+    roomid = models.CharField(max_length=4, null=True, default='B208')
 
 class Forbid(models.Model):
     st = models.TimeField(auto_now=False, auto_now_add=False) #%H:%M
