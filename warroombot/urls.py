@@ -6,5 +6,5 @@ urlpatterns = [
     path('create/', views.create),
     path('delete/', views.delete),
     path('retrieve/', views.retrieve),
-    path('getCalendar/', views.getCalendar),
+    path('getforbid/', views.getforbid),
 ]
