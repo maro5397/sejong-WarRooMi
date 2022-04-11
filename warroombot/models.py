@@ -2,19 +2,16 @@ from django.db import models
 
 
 class Booking(models.Model):
-    studentnum = models.CharField(max_length=8)
-    starttime = models.TimeField(auto_now=False, auto_now_add=False) #%H:%M
-    endtime = models.TimeField(auto_now=False, auto_now_add=False) #%H:%M
+    studentid = models.CharField(max_length=8)
+    st = models.TimeField(auto_now=False, auto_now_add=False) #%H:%M:%S
+    et = models.TimeField(auto_now=False, auto_now_add=False) #%H:%M:%S
     date = models.DateField(auto_now=False, auto_now_add=False) #%Y-%m-%d
-    count = models.IntegerField()
+    nos = models.IntegerField()
     name = models.TextField()
-    content = models.TextField()
+    ct = models.TextField()
+    roomid = models.CharField(max_length=4)
 
 class Forbid(models.Model):
-    starttime = models.TimeField(auto_now=False, auto_now_add=False) #%H:%M
-    endtime = models.TimeField(auto_now=False, auto_now_add=False) #%H:%M
-    dayofweek = models.CharField(max_length=3)
-    
-class Calendar(models.Model):
-    calendarpic = models.ImageField(upload_to='images/',blank=True, null=True)
-    inittime = models.DateTimeField()
+    st = models.TimeField(auto_now=False, auto_now_add=False) #%H:%M
+    et = models.TimeField(auto_now=False, auto_now_add=False) #%H:%M
+    dow = models.CharField(max_length=3)
