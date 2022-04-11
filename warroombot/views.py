@@ -1,9 +1,12 @@
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
+from warroombot.models import Booking, Forbid
 import json
 import logging
-from sj_auth import dosejong_api
+import datetime
+from . import sj_auth
+
 
 normalresponse = JsonResponse({
                     "version": "2.0",
@@ -24,12 +27,16 @@ abnormalresponse = JsonResponse({
                         "outputs": [
                             {
                                 "simpleText": {
-                                    "text": "처리 중 오류가 발생했어..."
+                                    "text": "처리 중 오류가 발생했어"
                                 }
                             }
                         ]
                     }
                 })
+
+requestlist = ['내용', '신청자']
+roomid = "B208"
+max_nos = 40
 
 @csrf_exempt
 def create(request):
@@ -42,7 +49,6 @@ def create(request):
     except KeyError:
         print("No Key in json")
         return abnormalresponse
-
 
 @csrf_exempt
 def delete(request):
@@ -61,11 +67,11 @@ def retrieve(request):
     })
 
 @csrf_exempt
-def getCalendar(request):
+def getforbid(request):
     body = convertBytetoJson(request)
     print(body)
     return JsonResponse({
-        'ans':'test getCalendar',
+        'return': 0,
     })
 
 def convertBytetoJson(request):
@@ -73,7 +79,7 @@ def convertBytetoJson(request):
     data = json.loads(decodedata)
     return data
 
-def printJson(jsondata):
+def printJson(data):
     jsonbody = json.dumps(data, indent=4, sort_keys=True)
     print(jsonbody)
 
@@ -95,58 +101,90 @@ def getCreateItem(body):
         reservation = nonspace.split('\n')
         for content in reservation:
             keyvalue = content.split(':')
-            key = keyvalue[0]
-            value = keyvalue[1]
-            dictionary[key] = value
-        print(dictionary)
-        # get table data
+            if keyvalue[0] in requestlist:
+                key = keyvalue[0]
+                value = keyvalue[1]
+                dictionary[key] = value
+        result1, name, studentid = getUser(dictionary['신청자'])
+        result2, content = getContent(dictionary['내용'])
+        result3, nos = getNOS(body['action']['detailParams']['nos'])
+        result4, date, st, et = getDateTime(body['action']['detailParams']['datetime'])
+        if result1 and result2 and result3 and result4:
+            booking = Booking(studentid=studentid, st=st, et=et, date=date, nos=nos, name=name, ct=ct, roomid=roomid)
+            booking.save()
+            return True
+        else:
+            return False
     except IndexError:
         print('no \":\" or \"\\n\" letter')
         return False
-        
-def getDOW(dow): #get date
-    dow = dow.replace("요일", "")
-    if dow == "월":
-        return "mon"
-    elif dow == "화":
-        return "tue"
-    elif dow == "수":
-        return "wed"
-    elif dow == "목":
-        return "thu"
-    elif dow == "금":
-        return "fri"
-    elif dow == "토":
-        return "sat"
-    elif dow == "일":
-        return "sun"
-    else:
-        return "err"
-
-def getTime(time):
-    time = time.split("~")
-    # 시작 시간, 끝 시간
-
-def getNOS(nos):
-    try:
-        nos = nos.replace("명", "")
-        if nos == "":
-            return "err"
-        else:
-            return int(nos)
-    except ValueError:
-        print("please input num in nos")
-        return "err"
 
 def getUser(userdata):
     try:
         userdata = userdata.split('/')
-        result = dosejong_api(userdata[0], userdata[1])
+        result = sj_auth.dosejong_api(userdata[0], userdata[1])
         if result['result']:
-            return result['name'], result['id']
+            print('name:', result['name'])
+            print('id:', result['id'])
+            return True, result['name'], result['id']
         else:
             print("there is no user in sejong univ.")
-            return "err", ""
+            return False, "", ""
     except IndexError:
         print("there is no \"/\" in userdata")
-        return "err", ""
+        return False, "", ""
+
+def getContent(ct):
+    print('ct:', ct)
+    return True, ct
+
+def getNOS(nos):
+    try:
+        nosdict = json.loads(nos['value'])
+        print('nos:', nosdict['amount'])
+        if nosdict['amount'] > max_nos:
+            print("please input under", max_nos)
+            return False, ""
+        return True, nosdict['amount']
+    except KeyError:
+        print("please input right nos")
+        return False, ""
+
+def getDateTime(dt):
+    try:
+        dtdict = json.loads(dt['value'])
+        fromdate = dtdict["from"]["date"]
+        todate = dtdict["to"]["date"]
+        fromtime = dtdict["from"]["time"]
+        totime = dtdict["to"]["time"]
+        if fromdate != todate:
+            print("you can reserve only one day", fromdate, todate)
+            return False, "", "", ""
+        if fromtime >= totime:
+            print("you have to input to time after from time")
+            return False, "", "", ""
+        today = datetime.datetime.now()
+        reserve = datetime.datetime.strptime(fromdate+' '+fromtime, '%Y-%m-%d %H:%M:%S')
+        if today >= reserve:
+            print("you have to input reserve day or time after today or now")
+            return False, "", "", ""
+        if int(dtdict['from']['minute']) % 30 != 0 or int(dtdict['to']['minute']) % 30 != 0:
+            print("you have to input reserve minute for 30")
+            return False, "", "", ""
+        st = dtdict["from"]["time"]
+        et = dtdict["to"]["time"]
+        date = fromdate
+        print('date:', date)
+        print('st:', st)
+        print('et:', et)
+        return True, date, st, et
+    except KeyError:
+        print("please input right DOW")
+        return False, "", "", ""
+    except (ValueError, TypeError):
+        print("please input right Date data")
+        return False, "", "", ""
+
+#신청 불가능한 시간에 사용 금지(xlsx 파일 긁어오기)
+def isForbidTime():
+    return False
