@@ -64,19 +64,12 @@ def retrieve(request):
     body = convertBytetoJson(request)
 
     userData = body['userRequest']['utterance'].strip()
-    print(f"userData : {userData}")
     
-    matchRule = re.compile("조회.*[: ](\d{3,15})\/(.*)")
-    accountInformation = matchRule.fullmatch(userData)
-    if accountInformation == None:
-        print("입력 포맷이 잘못 되었음")
-        return JsonResponse({
-            'ans':'입력 잘못됨'
-        })
-
-    userID = accountInformation.group(1)
-    userPW = accountInformation.group(2)
-
+    userData = userData.split(" ")[-1].split("/")
+    userID = userData[0]
+    userPW = userData[1]
+    
+    # login
     result = sj_auth.dosejong_api(userID, userPW)
     result1 = result['result']
 
@@ -94,9 +87,7 @@ def retrieve(request):
             'ans':'정보보호학과가 아님'
         })
     
-    print(f"result type : {type(result)}\nresult : {result}")
-
-    # db조회
+    # Database
     curTime = datetime.datetime.now()
 
     curDate = curTime.strftime("%Y-%m-%d")
@@ -109,31 +100,24 @@ def retrieve(request):
         date=curDate,
         st__gte=curst
     )
+    bookingList = bookingList.order_by('date', 'st')
 
-    output = ""
+    output = f"현재 {name}님의 예약 상황입니다.\n"
     for idx, obj in enumerate(bookingList):
-        output +=  f"{idx} {obj.date} {obj.st}~{obj.et} {obj.name}\n"
-        print(f"{obj.date} {obj.st}~{obj.et} {obj.name}\n")
-
-    print(output)
-    # matchRule = re.compile("조회.*[: ](.*)")
-    # accountInformation = matchRule.fullmatch(userData)
-    # userData = accountInformation.group(1)
-    # result = getUser(userData)
-    # print(f"result : {result}")
+        output +=  f"[{idx}] {obj.date} {obj.st}~{obj.et}\n"
 
     return JsonResponse({
-                    "version": "2.0",
-                    "template": {
-                        "outputs": [
-                            {
-                                "simpleText": {
-                                    "text": output
-                                }
-                            }
-                        ]
+        "version": "2.0",
+        "template": {
+            "outputs": [
+                {
+                    "simpleText": {
+                        "text": output
                     }
-                })
+                }
+            ]
+        }
+    })
 
 @csrf_exempt
 def getforbid(request):
