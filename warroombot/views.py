@@ -5,6 +5,7 @@ from warroombot.models import Booking, Forbid
 import json
 import logging
 import datetime
+import re
 from . import sj_auth
 
 
@@ -61,10 +62,79 @@ def delete(request):
 @csrf_exempt
 def retrieve(request):
     body = convertBytetoJson(request)
-    print(body)
+
+    userData = body['userRequest']['utterance'].strip()
+    print(f"userData : {userData}")
+    
+    matchRule = re.compile("조회.*[: ](\d{3,15})\/(.*)")
+    accountInformation = matchRule.fullmatch(userData)
+    if accountInformation == None:
+        print("입력 포맷이 잘못 되었음")
+        return JsonResponse({
+            'ans':'입력 잘못됨'
+        })
+        
+    userID = accountInformation.group(1)
+    userPW = accountInformation.group(2)
+
+    result = sj_auth.dosejong_api(userID, userPW)
+    result1 = result['result']
+
+    return abnormalresponse
+    if result1 != True:
+        return JsonResponse({
+            'ans':'로그인 실패함'
+        })
+
+    name = result['name']
+    studentid = result['id']
+    major = result['major']
+
+    if not isInformation(major):
+        return JsonResponse({
+            'ans':'정보보호학과가 아님'
+        })
+    
+    print(f"result type : {type(result)}\nresult : {result}")
+
+    # db조회
+    curTime = datetime.datetime.now()
+
+    curDate = curTime.strftime("%Y-%m-%d")
+    curst = curTime.strftime("%H:%M:%S")
+
+    bookingList = Booking.objects.filter(
+        studentid=studentid,
+        date__gt=curDate
+    ) | Booking.objects.filter(
+        date=curDate,
+        st__gte=curst
+    )
+
+    output = ""
+    for idx, obj in enumerate(bookingList):
+        output +=  f"{idx} {obj.date} {obj.st}~{obj.et} {obj.name}\n"
+        print(f"{obj.date} {obj.st}~{obj.et} {obj.name}\n")
+
+    print(output)
+    # matchRule = re.compile("조회.*[: ](.*)")
+    # accountInformation = matchRule.fullmatch(userData)
+    # userData = accountInformation.group(1)
+    # result = getUser(userData)
+    # print(f"result : {result}")
+
     return JsonResponse({
-        'ans':'test retrieve',
-    })
+                    "version": "2.0",
+                    "template": {
+                        "outputs": [
+                            {
+                                "simpleText": {
+                                    "text": output
+                                }
+                            }
+                        ]
+                    }
+                })
 
 @csrf_exempt
 def getforbid(request):
@@ -110,7 +180,7 @@ def getCreateItem(body):
         result3, nos = getNOS(body['action']['detailParams']['nos'])
         result4, date, st, et = getDateTime(body['action']['detailParams']['datetime'])
         if result1 and result2 and result3 and result4:
-            booking = Booking(studentid=studentid, st=st, et=et, date=date, nos=nos, name=name, ct=ct, roomid=roomid)
+            booking = Booking(studentid=studentid, st=st, et=et, date=date, nos=nos, name=name, ct=content, roomid=roomid)
             booking.save()
             return True
         else:
@@ -188,3 +258,6 @@ def getDateTime(dt):
 #신청 불가능한 시간에 사용 금지(xlsx 파일 긁어오기)
 def isForbidTime():
     return False
+
+def isInformation(major):
+    return major == "정보보호학과"
