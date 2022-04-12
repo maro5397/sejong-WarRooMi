@@ -61,9 +61,66 @@ def delete(request):
 @csrf_exempt
 def retrieve(request):
     body = convertBytetoJson(request)
-    print(body)
+
+    userData = body['userRequest']['utterance'].strip()
+    
+    try:
+        userData = userData.split(" ")[-1].split("/")
+        userID = userData[0]
+        userPW = userData[1]
+    except:
+        return JsonResponse({
+            'ans':'유저 ID, PW을 구하는데 실패했습니다.'
+        })
+        
+    # login
+    result = sj_auth.dosejong_api(userID, userPW)
+    result1 = result['result']
+
+    if result1 != True:
+        return JsonResponse({
+            'ans':'로그인 실패함'
+        })
+
+    name = result['name']
+    studentid = result['id']
+    major = result['major']
+
+    if not isInformation(major):
+        return JsonResponse({
+            'ans':'정보보호학과가 아님'
+        })
+    
+    # Database
+    curTime = datetime.datetime.now()
+
+    curDate = curTime.strftime("%Y-%m-%d")
+    curst = curTime.strftime("%H:%M:%S")
+
+    bookingList = Booking.objects.filter(
+        studentid=studentid,
+        date__gt=curDate
+    ) | Booking.objects.filter(
+        date=curDate,
+        st__gte=curst
+    )
+    bookingList = bookingList.order_by('date', 'st')
+
+    output = f"현재 {name}님의 예약 상황입니다.\n"
+    for idx, obj in enumerate(bookingList):
+        output +=  f"[{idx}] {obj.date} {obj.st}~{obj.et}\n"
+
     return JsonResponse({
-        'ans':'test retrieve',
+        "version": "2.0",
+        "template": {
+            "outputs": [
+                {
+                    "simpleText": {
+                        "text": output
+                    }
+                }
+            ]
+        }
     })
 
 @csrf_exempt
@@ -110,7 +167,7 @@ def getCreateItem(body):
         result3, nos = getNOS(body['action']['detailParams']['nos'])
         result4, date, st, et = getDateTime(body['action']['detailParams']['datetime'])
         if result1 and result2 and result3 and result4:
-            booking = Booking(studentid=studentid, st=st, et=et, date=date, nos=nos, name=name, ct=ct, roomid=roomid)
+            booking = Booking(studentid=studentid, st=st, et=et, date=date, nos=nos, name=name, ct=content, roomid=roomid)
             booking.save()
             return True
         else:
@@ -188,3 +245,6 @@ def getDateTime(dt):
 #신청 불가능한 시간에 사용 금지(xlsx 파일 긁어오기)
 def isForbidTime():
     return False
+
+def isInformation(major):
+    return major == "정보보호학과"
