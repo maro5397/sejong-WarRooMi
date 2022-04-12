@@ -64,10 +64,15 @@ def retrieve(request):
 
     userData = body['userRequest']['utterance'].strip()
     
-    userData = userData.split(" ")[-1].split("/")
-    userID = userData[0]
-    userPW = userData[1]
-    
+    try:
+        userData = userData.split(" ")[-1].split("/")
+        userID = userData[0]
+        userPW = userData[1]
+    except:
+        return JsonResponse({
+            'ans':'유저 ID, PW을 구하는데 실패했습니다.'
+        })
+        
     # login
     result = sj_auth.dosejong_api(userID, userPW)
     result1 = result['result']
