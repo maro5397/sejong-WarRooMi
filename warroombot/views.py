@@ -73,14 +73,13 @@ def retrieve(request):
         return JsonResponse({
             'ans':'입력 잘못됨'
         })
-        
+
     userID = accountInformation.group(1)
     userPW = accountInformation.group(2)
 
     result = sj_auth.dosejong_api(userID, userPW)
     result1 = result['result']
 
-    return abnormalresponse
     if result1 != True:
         return JsonResponse({
             'ans':'로그인 실패함'
