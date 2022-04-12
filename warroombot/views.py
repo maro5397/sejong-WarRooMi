@@ -5,7 +5,6 @@ from warroombot.models import Booking, Forbid
 import json
 import logging
 import datetime
-import re
 from . import sj_auth
 
 
