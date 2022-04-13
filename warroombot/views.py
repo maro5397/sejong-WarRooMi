@@ -53,10 +53,129 @@ def create(request):
 @csrf_exempt
 def delete(request):
     body = convertBytetoJson(request)
-    print(body)
-    return JsonResponse({
-        'ans':'test delete',
-    })
+    
+    userData = body['userRequest']['utterance'].strip()
+
+    try:
+        paramJson = json.loads(body['action']['params']['sys_number_ordinal'])
+        deleteIdx = paramJson['amount']
+    except:
+        return JsonResponse({
+            "version": "2.0",
+            "template": {
+                "outputs": [
+                    {
+                        "simpleText": {
+                            "text": "전송된 데이터에서 삭제하려는 번호를 확인하지 못했습니다.\n"
+                                    "'삭제 ?번 id/pw'형태가 맞는지 확인해주세요."
+                        }
+                    }
+                ]
+            }
+        })
+
+    try:
+        userData = userData.split(" ")[-1].split("/")
+        userID = userData[0]
+        userPW = userData[1]
+    except:
+        return JsonResponse({
+            "version": "2.0",
+            "template": {
+                "outputs": [
+                    {
+                        "simpleText": {
+                            "text": "전송된 데이터에서 id와 pw를 확인하지 못했습니다.\n"
+                                    "'삭제 ?번 id/pw'형태가 맞는지 확인해주세요."
+                        }
+                    }
+                ]
+            }
+        })
+
+    # login
+    result = sj_auth.dosejong_api(userID, userPW)
+    result1 = result['result']
+
+    if result1 != True:
+        return JsonResponse({
+            "version": "2.0",
+            "template": {
+                "outputs": [
+                    {
+                        "simpleText": {
+                            "text": "로그인에 실패했습니다.\n"
+                                    "id 또는 pw를 확인해주세요."
+                        }
+                    }
+                ]
+            }
+        })
+
+    name = result['name']
+    studentid = result['id']
+    major = result['major']
+
+    if not isInformation(major):
+        return JsonResponse({
+            "version": "2.0",
+            "template": {
+                "outputs": [
+                    {
+                        "simpleText": {
+                            "text": "정보보호학과생만 신청이 가능합니다."
+                        }
+                    }
+                ]
+            }
+        })
+    
+    # Database
+    curTime = datetime.datetime.now()
+
+    curDate = curTime.strftime("%Y-%m-%d")
+    curst = curTime.strftime("%H:%M:%S")
+
+    bookingList = Booking.objects.filter(
+        studentid=studentid,
+        date__gt=curDate
+    ) | Booking.objects.filter(
+        date=curDate,
+        st__gte=curst
+    )
+    bookingList = bookingList.order_by('date', 'st')
+
+    try:
+        obj = bookingList[deleteIdx-1]
+        output = f"{name}님께서 예약하신\n"
+        output += f"[{obj.date}일 {obj.st}~{obj.et}]\n일정을 삭제했습니다."
+        obj.delete()
+        return JsonResponse({
+            "version": "2.0",
+            "template": {
+                "outputs": [
+                    {
+                        "simpleText": {
+                            "text": output
+                        }
+                    }
+                ]
+            }
+        })
+    except:
+        return JsonResponse({
+            "version": "2.0",
+            "template": {
+                "outputs": [
+                    {
+                        "simpleText": {
+                            "text": "삭제과정에서 오류가 발생했습니다.\n"
+                                    "다시 시도해주세요"
+                        }
+                    }
+                ]
+            }
+        })
 
 @csrf_exempt
 def retrieve(request):
@@ -70,7 +189,17 @@ def retrieve(request):
         userPW = userData[1]
     except:
         return JsonResponse({
-            'ans':'유저 ID, PW을 구하는데 실패했습니다.'
+            "version": "2.0",
+            "template": {
+                "outputs": [
+                    {
+                        "simpleText": {
+                            "text": "전송된 데이터에서 id와 pw를 확인하지 못했습니다.\n"
+                                    "'조회 id/pw'형태가 맞는지 확인해주세요."
+                        }
+                    }
+                ]
+            }
         })
         
     # login
@@ -79,7 +208,17 @@ def retrieve(request):
 
     if result1 != True:
         return JsonResponse({
-            'ans':'로그인 실패함'
+            "version": "2.0",
+            "template": {
+                "outputs": [
+                    {
+                        "simpleText": {
+                            "text": "로그인에 실패했습니다.\n"
+                                    "id 또는 pw를 확인해주세요."
+                        }
+                    }
+                ]
+            }
         })
 
     name = result['name']
@@ -88,7 +227,16 @@ def retrieve(request):
 
     if not isInformation(major):
         return JsonResponse({
-            'ans':'정보보호학과가 아님'
+            "version": "2.0",
+            "template": {
+                "outputs": [
+                    {
+                        "simpleText": {
+                            "text": "정보보호학과생만 신청이 가능합니다."
+                        }
+                    }
+                ]
+            }
         })
     
     # Database
@@ -107,8 +255,8 @@ def retrieve(request):
     bookingList = bookingList.order_by('date', 'st')
 
     output = f"현재 {name}님의 예약 상황입니다.\n"
-    for idx, obj in enumerate(bookingList):
-        output +=  f"[{idx}] {obj.date} {obj.st}~{obj.et}\n"
+    for idx, obj in enumerate(bookingList, start=1):
+        output +=  f"[{idx}번] {obj.date} {obj.st}~{obj.et}\n"
 
     return JsonResponse({
         "version": "2.0",
