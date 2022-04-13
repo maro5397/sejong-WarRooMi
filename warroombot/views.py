@@ -61,7 +61,17 @@ def delete(request):
         deleteIdx = paramJson['amount']
     except:
         return JsonResponse({
-            'ans':'deleteIdx 파싱실패',
+            "version": "2.0",
+            "template": {
+                "outputs": [
+                    {
+                        "simpleText": {
+                            "text": "전송된 데이터에서 삭제하려는 번호를 확인하지 못했습니다.\n"
+                                    "'삭제 ?번 id/pw'형태가 맞는지 확인해주세요."
+                        }
+                    }
+                ]
+            }
         })
 
     try:
@@ -70,7 +80,17 @@ def delete(request):
         userPW = userData[1]
     except:
         return JsonResponse({
-            'ans':'유저 ID, PW을 구하는데 실패했습니다.'
+            "version": "2.0",
+            "template": {
+                "outputs": [
+                    {
+                        "simpleText": {
+                            "text": "전송된 데이터에서 id와 pw를 확인하지 못했습니다.\n"
+                                    "'삭제 ?번 id/pw'형태가 맞는지 확인해주세요."
+                        }
+                    }
+                ]
+            }
         })
 
     # login
@@ -79,7 +99,17 @@ def delete(request):
 
     if result1 != True:
         return JsonResponse({
-            'ans':'로그인 실패함'
+            "version": "2.0",
+            "template": {
+                "outputs": [
+                    {
+                        "simpleText": {
+                            "text": "로그인에 실패했습니다.\n"
+                                    "id 또는 pw를 확인해주세요."
+                        }
+                    }
+                ]
+            }
         })
 
     name = result['name']
@@ -88,7 +118,16 @@ def delete(request):
 
     if not isInformation(major):
         return JsonResponse({
-            'ans':'정보보호학과가 아님'
+            "version": "2.0",
+            "template": {
+                "outputs": [
+                    {
+                        "simpleText": {
+                            "text": "정보보호학과생만 신청이 가능합니다."
+                        }
+                    }
+                ]
+            }
         })
     
     # Database
@@ -130,7 +169,8 @@ def delete(request):
                 "outputs": [
                     {
                         "simpleText": {
-                            "text": "삭제하는데 오류가 발생했습니다.\n다시 시도해주세요"
+                            "text": "삭제과정에서 오류가 발생했습니다.\n"
+                                    "다시 시도해주세요"
                         }
                     }
                 ]
@@ -149,7 +189,17 @@ def retrieve(request):
         userPW = userData[1]
     except:
         return JsonResponse({
-            'ans':'유저 ID, PW을 구하는데 실패했습니다.'
+            "version": "2.0",
+            "template": {
+                "outputs": [
+                    {
+                        "simpleText": {
+                            "text": "전송된 데이터에서 id와 pw를 확인하지 못했습니다.\n"
+                                    "'조회 id/pw'형태가 맞는지 확인해주세요."
+                        }
+                    }
+                ]
+            }
         })
         
     # login
@@ -158,7 +208,17 @@ def retrieve(request):
 
     if result1 != True:
         return JsonResponse({
-            'ans':'로그인 실패함'
+            "version": "2.0",
+            "template": {
+                "outputs": [
+                    {
+                        "simpleText": {
+                            "text": "로그인에 실패했습니다.\n"
+                                    "id 또는 pw를 확인해주세요."
+                        }
+                    }
+                ]
+            }
         })
 
     name = result['name']
@@ -167,7 +227,16 @@ def retrieve(request):
 
     if not isInformation(major):
         return JsonResponse({
-            'ans':'정보보호학과가 아님'
+            "version": "2.0",
+            "template": {
+                "outputs": [
+                    {
+                        "simpleText": {
+                            "text": "정보보호학과생만 신청이 가능합니다."
+                        }
+                    }
+                ]
+            }
         })
     
     # Database
