@@ -106,16 +106,11 @@ def delete(request):
     )
     bookingList = bookingList.order_by('date', 'st')
 
-    deleteFlag = False
-
-    output = f"{name}님께서 예약하신\n"
-    for idx, obj in enumerate(bookingList, start=1):
-        if idx == deleteIdx:
-            output += f"[{obj.date}일 {obj.st}~{obj.et}]\n일정을 삭제했습니다.\n"
-            obj.delete()
-            deleteFlag = True
-
-    if deleteFlag:
+    try:
+        obj = bookingList[deleteIdx-1]
+        output = f"{name}님께서 예약하신\n"
+        output += f"[{obj.date}일 {obj.st}~{obj.et}]\n일정을 삭제했습니다."
+        obj.delete()
         return JsonResponse({
             "version": "2.0",
             "template": {
@@ -128,7 +123,7 @@ def delete(request):
                 ]
             }
         })
-    else:
+    except:
         return JsonResponse({
             "version": "2.0",
             "template": {
