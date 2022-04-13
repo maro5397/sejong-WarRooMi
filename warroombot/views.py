@@ -53,10 +53,94 @@ def create(request):
 @csrf_exempt
 def delete(request):
     body = convertBytetoJson(request)
-    print(body)
-    return JsonResponse({
-        'ans':'test delete',
-    })
+    
+    userData = body['userRequest']['utterance'].strip()
+
+    try:
+        paramJson = json.loads(body['action']['params']['sys_number_ordinal'])
+        deleteIdx = paramJson['amount']
+    except:
+        return JsonResponse({
+            'ans':'deleteIdx 파싱실패',
+        })
+
+    try:
+        userData = userData.split(" ")[-1].split("/")
+        userID = userData[0]
+        userPW = userData[1]
+    except:
+        return JsonResponse({
+            'ans':'유저 ID, PW을 구하는데 실패했습니다.'
+        })
+
+    # login
+    result = sj_auth.dosejong_api(userID, userPW)
+    result1 = result['result']
+
+    if result1 != True:
+        return JsonResponse({
+            'ans':'로그인 실패함'
+        })
+
+    name = result['name']
+    studentid = result['id']
+    major = result['major']
+
+    if not isInformation(major):
+        return JsonResponse({
+            'ans':'정보보호학과가 아님'
+        })
+    
+    # Database
+    curTime = datetime.datetime.now()
+
+    curDate = curTime.strftime("%Y-%m-%d")
+    curst = curTime.strftime("%H:%M:%S")
+
+    bookingList = Booking.objects.filter(
+        studentid=studentid,
+        date__gt=curDate
+    ) | Booking.objects.filter(
+        date=curDate,
+        st__gte=curst
+    )
+    bookingList = bookingList.order_by('date', 'st')
+
+    deleteFlag = False
+
+    output = f"{name}님께서 예약하신\n"
+    for idx, obj in enumerate(bookingList, start=1):
+        if idx == deleteIdx:
+            output += f"[{obj.date}일 {obj.st}~{obj.et}]\n일정을 삭제했습니다.\n"
+            obj.delete()
+            deleteFlag = True
+
+    if deleteFlag:
+        return JsonResponse({
+            "version": "2.0",
+            "template": {
+                "outputs": [
+                    {
+                        "simpleText": {
+                            "text": output
+                        }
+                    }
+                ]
+            }
+        })
+    else:
+        return JsonResponse({
+            "version": "2.0",
+            "template": {
+                "outputs": [
+                    {
+                        "simpleText": {
+                            "text": "삭제하는데 오류가 발생했습니다.\n다시 시도해주세요"
+                        }
+                    }
+                ]
+            }
+        })
 
 @csrf_exempt
 def retrieve(request):
@@ -107,8 +191,8 @@ def retrieve(request):
     bookingList = bookingList.order_by('date', 'st')
 
     output = f"현재 {name}님의 예약 상황입니다.\n"
-    for idx, obj in enumerate(bookingList):
-        output +=  f"[{idx}] {obj.date} {obj.st}~{obj.et}\n"
+    for idx, obj in enumerate(bookingList, start=1):
+        output +=  f"[{idx}번] {obj.date} {obj.st}~{obj.et}\n"
 
     return JsonResponse({
         "version": "2.0",
