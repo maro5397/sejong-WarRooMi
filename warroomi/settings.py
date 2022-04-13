@@ -1,5 +1,4 @@
 from pathlib import Path
-import secrets
 from django.core.exceptions import ImproperlyConfigured
 import os, json
 
