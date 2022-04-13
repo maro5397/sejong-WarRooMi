@@ -5,5 +5,11 @@ import json
 import logging
 
 # Create your views here.
+@csrf_exempt
 def googledrive(request):
-    return "True"
+    #print(request.body)
+    return ""
+
+def printJson(data):
+    jsonbody = json.dumps(data, indent=4, sort_keys=True)
+    print(jsonbody)

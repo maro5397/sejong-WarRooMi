@@ -7,4 +7,9 @@ Kakao Talk bot for reservation of Sejong University Cyber War Room
 # setting server
 $ python manage.py makemigrations  
 $ python manage.py migrate  
-$ python manage.py runserver ip:port
+$ python manage.py runserver ip:port  
+
+# setting sslserver
+$ python manage.py makemigrations  
+$ python manage.py migrate  
+$ python manage.py runsslserver ip:port --certificate [fullchain.pem path] --key [privkey.pem path]
