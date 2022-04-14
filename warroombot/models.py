@@ -10,8 +10,3 @@ class Booking(models.Model):
     name = models.TextField()
     ct = models.TextField()
     roomid = models.CharField(max_length=4, null=True, default='B208')
-
-class Forbid(models.Model):
-    st = models.TimeField(auto_now=False, auto_now_add=False) #%H:%M
-    et = models.TimeField(auto_now=False, auto_now_add=False) #%H:%M
-    dow = models.CharField(max_length=3)
