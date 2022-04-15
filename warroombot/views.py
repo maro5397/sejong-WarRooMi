@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from warroombot.models import Booking
+from googlewebhook.models import Forbid
 import json
 import logging
 import datetime
@@ -37,6 +38,7 @@ abnormalresponse = JsonResponse({
 requestlist = ['내용', '신청자']
 roomid = "B208"
 max_nos = 40
+weeks = ['mo', 'tu', 'we', 'th', 'fr', 'sa', 'su']
 
 @csrf_exempt
 def create(request):
@@ -383,20 +385,45 @@ def getDateTime(dt):
         st = dtdict["from"]["time"]
         et = dtdict["to"]["time"]
         date = fromdate
+        if isForbidTime(st, et, date):
+            print("input forbid time or already reserved")
+            return False, "", "", ""
         print('date:', date)
         print('st:', st)
         print('et:', et)
         return True, date, st, et
-    except KeyError:
-        print("please input right DOW")
+    except KeyError as e:
+        print("please input right DOW", e)
         return False, "", "", ""
-    except (ValueError, TypeError):
-        print("please input right Date data")
+    except (ValueError, TypeError) as e:
+        print("please input right Date data", e)
         return False, "", "", ""
 
-#신청 불가능한 시간에 사용 금지(xlsx 파일 긁어오기)
-def isForbidTime():
+def isForbidTime(st, et, date):
+    sttime = datetime.datetime.strptime(st, '%H:%M:%S').time()
+    ettime = datetime.datetime.strptime(et, '%H:%M:%S').time()
+    datetype = datetime.datetime.strptime(date, '%Y-%m-%d').date()
+    bookingdate = Booking.objects.filter(date__exact = datetype)
+    dow = changeDatetoDOW(date)
+    forbiddate = Forbid.objects.filter(dow__exact = dow)
+    return isInvaildRange(sttime, ettime, bookingdate) or isInvaildRange(sttime, ettime, forbiddate)
+
+def isInvaildRange(sttime, ettime, dates):
+    if dates.exists():
+        forbidsttime = dates.filter(st__range=[sttime, ettime])
+        forbidettime = dates.filter(et__range=[sttime, ettime])
+        if forbidsttime.exists() or forbidettime.exists():
+            return True
+        else:
+            for date in dates:
+                if date.st < sttime and ettime < date.et:
+                    return True
     return False
+
+def changeDatetoDOW(date):
+    datetype = datetime.datetime.strptime(date, '%Y-%m-%d').date()
+    dow = datetype.weekday()
+    return weeks[dow]
 
 def isInformation(major):
     return major == "정보보호학과"
