@@ -1,5 +1,4 @@
 from pathlib import Path
-import secrets
 from django.core.exceptions import ImproperlyConfigured
 import os, json
 
@@ -33,7 +32,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'sslserver',
     'warroombot',
+    'googlewebhook',
 ]
 
 MIDDLEWARE = [

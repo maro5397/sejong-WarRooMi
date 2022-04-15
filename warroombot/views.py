@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
-from warroombot.models import Booking, Forbid
+from warroombot.models import Booking
 import json
 import logging
 import datetime
@@ -329,14 +329,18 @@ def getUser(userdata):
         userdata = userdata.split('/')
         result = sj_auth.dosejong_api(userdata[0], userdata[1])
         if result['result']:
-            print('name:', result['name'])
-            print('id:', result['id'])
-            return True, result['name'], result['id']
+            if isInformation(result['major']):
+                print('name:', result['name'])
+                print('id:', result['id'])
+                return True, result['name'], result['id']
+            else:
+                print("not infosec student")
+                return False, "", ""
         else:
             print("there is no user in sejong univ.")
             return False, "", ""
-    except IndexError:
-        print("there is no \"/\" in userdata")
+    except (IndexError, KeyError):
+        print("there is no \"/\" in userdata or no key data in sejong api result")
         return False, "", ""
 
 def getContent(ct):
