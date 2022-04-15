@@ -66,8 +66,8 @@ def googledrive(request):
         return abnormalresponse
 
     creds = checkAuth()
-    SPREADSHEET_ID = get_secret("ID")
-    RANGE = get_secret("RANGE")
+    SPREADSHEET_ID = get_secret("SPREADSHEETID")
+    RANGE = get_secret("SPREADSHEETRANGE")
     forbidlist = {'timerange':[], 'timetable':{
         'mo': [],
         'tu': [],
