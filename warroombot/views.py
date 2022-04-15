@@ -3,10 +3,14 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from warroombot.models import Booking
 from googlewebhook.models import Forbid
+from email.mime.text import MIMEText
+from pathlib import Path
+from . import sj_auth
+import os.path
 import json
 import logging
 import datetime
-from . import sj_auth
+import smtplib
 
 
 normalresponse = JsonResponse({
@@ -35,8 +39,11 @@ abnormalresponse = JsonResponse({
                     }
                 })
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+secret_file = os.path.join(BASE_DIR, 'secrets.json')
+
 requestlist = ['내용', '신청자']
-roomid = "B208"
+roomid = "센B208"
 max_nos = 40
 weeks = ['mo', 'tu', 'we', 'th', 'fr', 'sa', 'su']
 
@@ -313,11 +320,13 @@ def getCreateItem(body):
                 value = keyvalue[1]
                 dictionary[key] = value
         result1, name, studentid = getUser(dictionary['신청자'])
-        result2, content = getContent(dictionary['내용'])
+        result2, ct = getContent(dictionary['내용'])
         result3, nos = getNOS(body['action']['detailParams']['nos'])
         result4, date, st, et = getDateTime(body['action']['detailParams']['datetime'])
         if result1 and result2 and result3 and result4:
-            booking = Booking(studentid=studentid, st=st, et=et, date=date, nos=nos, name=name, ct=content, roomid=roomid)
+            if not sendEmail(st, et, date, nos, ct, name, studentid, roomid):
+                return False
+            booking = Booking(studentid=studentid, st=st, et=et, date=date, nos=nos, name=name, ct=ct, roomid=roomid)
             booking.save()
             return True
         else:
@@ -427,3 +436,41 @@ def changeDatetoDOW(date):
 
 def isInformation(major):
     return major == "정보보호학과"
+
+def get_secret(setting):
+    with open(secret_file, 'r') as f:
+        secrets = json.loads(f.read())
+        try:
+            return secrets[setting]
+        except KeyError:
+            error_msg = "Set the {} environment variable".format(setting)
+            raise ImproperlyConfigured(error_msg)
+
+def sendEmail(st, et, date, nos, ct, name, studentid, roomid):
+    try:
+        emailid = get_secret("EMAILID")
+        emailpw = get_secret("EMAILPW")
+        manager = get_secret("MANAGER")
+        s = smtplib.SMTP('smtp.gmail.com', 587)
+        s.starttls()
+        s.login(emailid, emailpw)
+        msg_subject = "[세종대학교 사이버워룸] 사용 내역 관련"
+        msg_content = f"""안녕하십니까 워루미입니다.
+예약 신청 내역 정보를 송신합니다.
+
+위치: {roomid}
+시간: {date} {st} ~ {et}
+인원: {nos}명
+내용: {ct}
+신청자: {name}({studentid})
+
+메일 확인해주셔서 감사합니다."""
+        msg = MIMEText(msg_content.encode('utf-8'), _charset='utf-8')   
+        msg['Subject'] = msg_subject
+        s.sendmail(emailid, [manager], msg.as_string())
+        s.quit()
+        return True
+    except:
+        s.quit()
+        print("there is something wrong in email send func")
+        return False
