@@ -26,6 +26,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+migrations/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -60,6 +61,10 @@ coverage.xml
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+secrets.json
+credentials.json
+googlesheetstoken.json
+googledrivetoken.json
 
 # Flask stuff:
 instance/
