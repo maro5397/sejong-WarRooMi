@@ -1,0 +1,23 @@
+warroomi v0.0.1 Release Note
+=================================
+
+This release warroomi bot v0.0.1
+
+Introduction:
+    Reservation Kakao bot service for Sejong univ. infosec major
+
+Configuration:
+    django
+    python-smtp
+    google sheets api
+    kakao bot skills
+
+Feature:
+    (with user account)
+    create Reservation
+    retrieve Reservation
+    delete Reservation
+    
+    (without user account)
+    retrieve Reservation with date
+    get professor's lecture time
