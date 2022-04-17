@@ -283,9 +283,77 @@ def retrieve(request):
 @csrf_exempt
 def getforbid(request):
     body = convertBytetoJson(request)
-    print(body)
+    
+    try:
+        paramJson = json.loads(body['action']['params']['sys_date'])
+
+        userYear = int(paramJson["year"])
+        userMonth = int(paramJson["month"])
+        userDay = int(paramJson["day"])
+        userDate = datetime.datetime(userYear, userMonth, userDay)
+
+        dayWeek = changeDatetoDOW(f"{userYear}-{userMonth}-{userDay}")
+    except :
+        return JsonResponse({
+            "version": "2.0",
+            "template": {
+                "outputs": [
+                    {
+                        "simpleText": {
+                            "text": "날짜를 구하는데 오류가 발생했습니다."
+                        }
+                    }
+                ]
+            }
+        })
+
+    today = datetime.datetime.today()
+    systemYear = today.year
+    systemMonth = today.month
+    systemDay = today.day
+    systemDate = datetime.datetime(systemYear, systemMonth, systemDay)
+
+    if userDate < systemDate:
+        return JsonResponse({
+            "version": "2.0",
+            "template": {
+                "outputs": [
+                    {
+                        "simpleText": {
+                            "text": "이전 날짜는 조회할 수 없습니다."
+                        }
+                    }
+                ]
+            }
+        })
+
+    # 해당 날짜 조회
+    bookingList = Booking.objects.filter(
+        date=f"{userYear}-{userMonth}-{userDay}"
+    ).values('st', 'et')
+
+    forbidList = Forbid.objects.filter(
+        dow=dayWeek
+    ).values('st', 'et')
+
+    # st, et union으로 합치고 st 순서대로 정렬
+    unionList = bookingList.union(forbidList).order_by('st')
+
+    output = f"{userYear}-{userMonth}-{userDay}일 예약 현황입니다.\n"
+    for idx, obj in enumerate(unionList, start=1):
+        output +=  f"[{idx}]  {obj['st']}~{obj['et']}\n"
+
     return JsonResponse({
-        'return': 0,
+        "version": "2.0",
+        "template": {
+            "outputs": [
+                {
+                    "simpleText": {
+                        "text": output
+                    }
+                }
+            ]
+        }
     })
 
 def convertBytetoJson(request):
